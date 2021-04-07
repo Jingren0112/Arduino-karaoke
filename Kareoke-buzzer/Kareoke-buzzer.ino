@@ -138,9 +138,7 @@ int melody[2][200] = {
   }
 };
 
-char[2][{
 
-}
 int rows = sizeof(melody) / sizeof(melody[0]);
 int cols = sizeof(melody[0]) / sizeof(int);
 
