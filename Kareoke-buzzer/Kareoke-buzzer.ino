@@ -91,7 +91,7 @@
 #define BUZZER 5
 #include "Arduino_SensorKit.h"
 U8X8_SSD1306_128X64_NONAME_HW_I2C OledHW( U8X8_PIN_NONE);
-int tempo = 100;
+int tempo[2] = {120, 100};
 int melody[2][200] = {
   {
     // Silent Night, Original Version
@@ -138,45 +138,80 @@ int melody[2][200] = {
   }
 };
 
-
+char *myStrings[] = {"This is string 1", "This is string 2", "This is string 3",
+                     "This is string 4", "This is string 5", "This is string 6"
+                    };
 int rows = sizeof(melody) / sizeof(melody[0]);
 int cols = sizeof(melody[0]) / sizeof(int);
+int thisNote = 0;
+int i, j = 0;
+int wholenote, divider, noteDuration = 0;
+int size = sizeof(myStrings) / sizeof(myStrings[0]);
+int sum = 0; //count the synchronization
 
 void setup() {
   OledHW.begin();
   OledHW.setFlipMode(true);
   OledHW.setFont(u8x8_font_chroma48medium8_r);
   OledHW.setCursor(0, 0);    // Set the Coordinates
-  OledHW.print("row: ");
-  OledHW.println(rows);
-  OledHW.print("col: ");
-  OledHW.print(cols);
-  for (int i = 0; i < rows ; i++) {
-    int wholenote = (60000 * 4) / tempo;
-    int divider = 0, noteDuration = 0;
-    for (int thisNote = 0; thisNote < cols; thisNote += 2) {
-      if (melody[i][thisNote] != 0) {
-        if (melody[i][thisNote] == 1) {
-          melody[i][thisNote] = 0;
-        }
-        divider = melody[i][thisNote + 1];
-        if (divider > 0) {
-          noteDuration = (wholenote) / divider;
-        } else if (divider < 0) {
-          noteDuration = (wholenote) / abs(divider);
-          noteDuration *= 1.5;
-        }
-        tone(BUZZER, melody[i][thisNote], noteDuration * 0.9);
-
-        // Wait for the specief duration before playing the next note.
-        delay(noteDuration);
-
-        // stop the waveform generation before the next note.
-        noTone(BUZZER);
-      }
-    }
-  }
 }
 
 void loop() {
+  if (j > size) {
+    j = 0;
+  }
+  if (thisNote == 0) {
+    if (i < rows) {
+      wholenote = (60000 * 4) / tempo[i];
+      divider = 0, noteDuration = 0;
+      i++;
+    } else {
+      i = 0;
+    }
+    OledHW.print(myStrings[j]);
+  }
+  if (thisNote < cols) {
+    if (melody[i][thisNote] != 0) {
+      if (melody[i][thisNote] == 1) {
+        melody[i][thisNote] = 0;
+      }
+      divider = melody[i][thisNote + 1];
+      if (divider > 0) {
+        noteDuration = (wholenote) / divider;
+      } else if (divider < 0) {
+        noteDuration = (wholenote) / abs(divider);
+        noteDuration *= 1.5;
+      }
+      int tempDivider = 0;
+      int tempNoteDuration = 0;
+      for (int x = thisNote; x > 0; x--) {
+        tempDivider = melody[i][x];
+        if (divider > 0) {
+          tempNoteDuration = (wholenote) / divider;
+        } else if (divider < 0) {
+          tempNoteDuration = (wholenote) / abs(divider);
+          tempNoteDuration *= 1.5;
+        }
+        sum += tempNoteDuration;
+        if (sum > 6) {
+          OledHW.print(myStrings[j]);
+          j++;
+          x = 0;
+        }
+      }
+      tone(BUZZER, melody[i][thisNote], noteDuration * 0.9);
+      // Wait for the specief duration before playing the next note.
+      delay(noteDuration);
+
+      // stop the waveform generation before the next note.
+      noTone(BUZZER);
+      thisNote++;
+
+    } else {
+      thisNote = cols;
+    }
+  } else {
+    thisNote = 0;
+  }
+
 }
