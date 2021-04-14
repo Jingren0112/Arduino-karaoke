@@ -92,6 +92,8 @@
 
 //Tris here added a potentiometer to call
 #define POTENTIOMETER 0
+#define LED 13
+
 
 #include "Arduino_SensorKit.h"
 U8X8_SSD1306_128X64_NONAME_HW_I2C OledHW( U8X8_PIN_NONE);
@@ -145,19 +147,21 @@ int melody[2][200] = {
 char *myStrings[] = {"This is string 1", "This is string 2", "This is string 3",
                      "This is string 4", "This is string 5", "This is string 6"
                     };
-int rows = sizeof(melody) / sizeof(melody[0]);
-int cols = sizeof(melody[0]) / sizeof(int);
-int thisNote = 0;
-int i, j = 0;
+int rows = sizeof(melody) / sizeof(melody[0]);      //number of song
+int cols = sizeof(melody[0]) / sizeof(int);       //number of note
+int thisNote = 0; //thisNote is the pos of
+int i, j = 0;   //i is the pos of note, j is for ledTitle
 int wholenote, divider, noteDuration = 0;
 int size = sizeof(myStrings) / sizeof(myStrings[0]);
 int sum = 0; //count the synchronization
 int reset = 0;
+int adjusted=0;
+int pometerVal;
 
 void setup() {
   //Tris here added pin13 for the lightbub
   pinMode (13, OUTPUT);
-  
+  pometerVal=map (analogRead(POTENTIOMETER), 0, 1023, 0, 255);
   OledHW.begin();
   OledHW.setFlipMode(true);
   OledHW.setFont(u8x8_font_chroma48medium8_r);
@@ -165,18 +169,54 @@ void setup() {
 }
 
 void loop() {
+  //Tris : Set a val to call the PM
+  int val = analogRead(POTENTIOMETER);
+ //map up, get different voltage
+  val = map ( val, 0, 1023,0,255);        //value of potentionmeter
+  if(pometerVal!=val){        //check if potentiometer changed
+    if ((pometerVal-val)>20){
+      if(i<1){          //if current song is at position 0
+        i=rows-1;       //play last song on the list
+      }else{            
+        i--;  
+      }
+       thisNote=0;
+      //I fucked up here... 
+      //I have no idea how to stop the loop 
+      //and apply new changes here
+   } else if((pometerVal-val)<-20){
+        if(i==rows-1){          //if current song is at position 0
+          i=0;       //play last song on the list
+        }else{            
+          i++;  
+        }
+         thisNote=0;
+   }
+    adjusted=1;
+    pometerVal=val;
+ }
+  
   if (j > size) {
     j = 0;
   } //Tris: this is temporarily not used?
-  if (thisNote == 0) { //switch songs
-    if (i < rows) {
-      wholenote = (60000 * 4) / tempo[i];
-      divider = 0, noteDuration = 0;
-      i++;
-    } else {
-      i = 0;
+  
+  if (thisNote == 0) { //switch 
+    if(adjusted){                 //switch by users 
+        wholenote = (60000 * 4) / tempo[i];
+        divider = 0, noteDuration = 0;
+    } else{                       //switched by song
+      if (i < rows) {
+        wholenote = (60000 * 4) / tempo[i];
+        divider = 0, noteDuration = 0;
+        i++;
+      } else {
+        wholenote = (60000 * 4) / tempo[i];
+        divider = 0, noteDuration = 0;
+        i = 0;
+      }
     }
     OledHW.print(myStrings[j]);
+    adjusted=0;
   }
   if (thisNote < cols) {
     if (melody[i][thisNote] != 0) {
@@ -222,18 +262,6 @@ void loop() {
     
   }
 
- //Tris : Set a val to call the PM
-  int val = analogRead(POTENTIOMETER);
- //map up, get different voltage
-  val = map ( val, 0, 1023,0,255);
-  if (val <=127 ){
-    i=0; 
-    //I fucked up here... 
-    //I have no idea how to stop the loop 
-    //and apply new changes here
-  }
-  if (val  >127){
-    i=1;
-  }
+ 
   
 }
