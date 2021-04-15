@@ -89,7 +89,7 @@
 #define NOTE_DS8 4978
 #define REST 1
 #define BUZZER 5
-#define BUTTON 2
+#define BUTTON 4
 
 //Tris here added a potentiometer to call
 #define POTENTIOMETER 0
