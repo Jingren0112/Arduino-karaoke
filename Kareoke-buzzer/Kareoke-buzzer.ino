@@ -1,3 +1,5 @@
+#include <EEPROM.h>
+#include <avr/pgmspace.h>
 #define NOTE_B0  31
 #define NOTE_C1  33
 #define NOTE_CS1 35
@@ -92,7 +94,7 @@
 #include "Arduino_SensorKit.h"
 U8X8_SSD1306_128X64_NONAME_HW_I2C OledHW( U8X8_PIN_NONE);
 int tempo[2] = {120, 100};
-int melody[2][200] = {
+const int melody[2][100] PROGMEM = {
   {
     // Silent Night, Original Version
     // Score available at https://musescore.com/marcsabatella/scores/3123436
@@ -138,17 +140,23 @@ int melody[2][200] = {
   }
 };
 
-char *myStrings[] = {"This is string 1", "This is string 2", "This is string 3",
-                     "This is string 4", "This is string 5", "This is string 6"
-                    };
+const char* const lyric[][100] PROGMEM = {
+  { "silent night", "holy night",
+    "all is calm", "all is bright", "round yon virgin", "mother and child",
+    "holy infant, so", "tender and mild,", "sleep in heavenly", "peace", "sleep in heavenly", "peace."
+  }, {"happy birthday to",
+      "you, happy birth","day to you","happy birthday to","the name, happy birth", "day to you"
+  }
+};
 int rows = sizeof(melody) / sizeof(melody[0]);
 int cols = sizeof(melody[0]) / sizeof(int);
-int thisNote = 0;
-int i, j = 0;
+int thisNote = 0;                 //count the current note
+int i, j = 0;                  // i count the current song, also count the current song's subtitle
 int wholenote, divider, noteDuration = 0;
-int size = sizeof(myStrings) / sizeof(myStrings[0]);
+int size = sizeof(lyric) / sizeof(lyric[0]);
 int sum = 0; //count the synchronization
-
+int subTitle = 0; //count the number of notes for subtitle
+int start = 1; //flag for if this is the first time running
 void setup() {
   OledHW.begin();
   OledHW.setFlipMode(true);
@@ -157,61 +165,77 @@ void setup() {
 }
 
 void loop() {
-  if (j > size) {
-    j = 0;
-  }
   if (thisNote == 0) {
-    if (i < rows) {
-      wholenote = (60000 * 4) / tempo[i];
-      divider = 0, noteDuration = 0;
-      i++;
-    } else {
-      i = 0;
+      j=0;  
+      subTitle = 0;
+    if (i > rows || start == 1) {
+      start = 0;
+      i = -1;
     }
-    OledHW.print(myStrings[j]);
+    i++;
+    wholenote = (60000 * 4) / tempo[i];
+    divider = 0, noteDuration = 0;
+    OledHW.clearDisplay();
+    char* str = (char*)pgm_read_word_near(&(lyric[i][j]));
+    int z = 0;
+    int line=1;
+    for (int b = z+14; b>0&&z < strlen(str); b--) {
+        String str1 = str; 
+      if (str[b] == ' '&&(b+z)<=strlen(str)) {
+        OledHW.print(str1.substring(z,b)); 
+        OledHW.setCursor(0, line);
+        z=b+1;
+        b=z+14;
+        line++;
+      } else if(b>strlen(str)){
+        OledHW.print(str1.substring(z,strlen(str))); 
+        z=strlen(str);
+      }
+    }
+    j++;
   }
-  if (thisNote < cols) {
-    if (melody[i][thisNote] != 0) {
-      if (melody[i][thisNote] == 1) {
-        melody[i][thisNote] = 0;
-      }
-      divider = melody[i][thisNote + 1];
-      if (divider > 0) {
-        noteDuration = (wholenote) / divider;
-      } else if (divider < 0) {
-        noteDuration = (wholenote) / abs(divider);
-        noteDuration *= 1.5;
-      }
-      int tempDivider = 0;
-      int tempNoteDuration = 0;
-      for (int x = thisNote; x > 0; x--) {
-        tempDivider = melody[i][x];
-        if (divider > 0) {
-          tempNoteDuration = (wholenote) / divider;
-        } else if (divider < 0) {
-          tempNoteDuration = (wholenote) / abs(divider);
-          tempNoteDuration *= 1.5;
-        }
-        sum += tempNoteDuration;
-        if (sum > 6) {
-          OledHW.print(myStrings[j]);
-          j++;
-          x = 0;
-        }
-      }
-      tone(BUZZER, melody[i][thisNote], noteDuration * 0.9);
-      // Wait for the specief duration before playing the next note.
-      delay(noteDuration);
-
-      // stop the waveform generation before the next note.
-      noTone(BUZZER);
-      thisNote++;
-
-    } else {
-      thisNote = cols;
-    }
-  } else {
+  if(pgm_read_word_near(&(melody[i][thisNote])) == 0) {
     thisNote = 0;
-  }
+  }else {
+    divider = pgm_read_word_near(&(melody[i][thisNote + 1]));
+    if (divider > 0) {
+      noteDuration = (wholenote) / divider;
+    } else if (divider < 0) {
+      noteDuration = (wholenote) / abs(divider);
+      noteDuration *= 1.5;
+    }
+    if (subTitle >= wholenote *4/3 ) {
+      subTitle = 0;
+      OledHW.clear();
+      char* str = (char*)pgm_read_word_near(&(lyric[i][j]));
+      int z = 0;
+      int line=1;
+      for (int b = z+14; b>0&&z < strlen(str); b--) {
+          String str1 = str; 
+        if (str[b] == ' '&&(b+z)<=strlen(str)) {
+          OledHW.print(str1.substring(z,b)); 
+          OledHW.setCursor(0, line);
+          z=b+1;
+          b=z+14;
+          line++;
+        } else if(b>strlen(str)){
+          OledHW.print(str1.substring(z,strlen(str))); 
+          z=strlen(str);
+        }
+      }
+      j++;
+    }
+    if (pgm_read_word_near(&(melody[i][thisNote])) == 1) {
+      tone(BUZZER, 0, noteDuration * 0.9);
+    } else {
+      tone(BUZZER, pgm_read_word_near(&(melody[i][thisNote])), noteDuration * 0.9);
+    }
+    // Wait for the specief duration before playing the next note.
+    delay(noteDuration);
 
+    // stop the waveform generation before the next note.
+    noTone(BUZZER);
+    thisNote++;
+    subTitle += noteDuration;
+  } 
 }
