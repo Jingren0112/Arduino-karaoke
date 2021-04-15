@@ -95,7 +95,7 @@
 #define POTENTIOMETER 0
 #define LED 6
 
-
+#include <ezButton.h>
 #include "Arduino_SensorKit.h"
 U8X8_SSD1306_128X64_NONAME_HW_I2C OledHW( U8X8_PIN_NONE);
 int tempo[2] = {120, 100};
@@ -159,6 +159,7 @@ int reset = 0;
 int adjusted=0; //if potentiometer is turned
 int pometerVal; //the previous value of PM
 boolean buttonState = true; 
+ezButton button(BUTTON);
 
 void setup() {
   //Tris here added pin13 for the lightbub
@@ -169,6 +170,7 @@ void setup() {
   OledHW.setFlipMode(true);
   OledHW.setFont(u8x8_font_chroma48medium8_r);
   OledHW.setCursor(0, 0);    // Set the Coordinates
+  button.setDebounceTime(500);
 }
 
 void loop() {
@@ -217,10 +219,9 @@ void loop() {
     adjusted=1;
     pometerVal=val;
  } 
-
-  if (digitalRead(BUTTON) == LOW) {
-  buttonState != buttonState;
-  delay(500);
+button.loop();
+  if (button.isPressed()) {
+  buttonState = !buttonState;
   }
   if (buttonState == false) {
       }
