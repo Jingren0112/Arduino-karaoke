@@ -90,7 +90,8 @@
 #define REST 1
 #define BUZZER 5
 #define BUTTON 4
-#define BUTTON_ALT 2
+#define BUTTON_ALT 2        //this is interrupt pin
+#define SOUND_SENSOR A2
 
 //Tris here added a potentiometer to call
 #define POTENTIOMETER 0
@@ -172,20 +173,20 @@ void setup() {
   //Tris here added pin13 for the lightbub
   pinMode (LED, OUTPUT);
   pinMode (BUTTON, INPUT);
-  pinMode (BUTTON_ALT, INPUT);
-  attachInterrupt(digitalPinToInterrupt(BUTTON_ALT),interruptFunction,RISING);
+  pinMode (BUTTON_ALT, INPUT);      //set the interrupt pin to input which can be controlled by button
+  attachInterrupt(digitalPinToInterrupt(BUTTON_ALT),interruptFunction,RISING);//trigger interrupt to run the function: interruptFunction with rising the button.
   pometerVal=map (analogRead(POTENTIOMETER), 0, 1023, 0, 255); //read the previous value
   OledHW.begin();
   OledHW.setFlipMode(true);
   OledHW.setFont(u8x8_font_chroma48medium8_r);
   OledHW.setCursor(0, 0);    // Set the Coordinates
-  last_call=millis();
+  last_call=millis();         //set the time between each interrupt
   Serial.begin(9600);
 }
 
 void loop() {
   //Tris : Set a val to read the recent value of PM
-  int val = analogRead(POTENTIOMETER);
+  int val = analogRead(POTENTIOMETER);        //read current 
  //map up, get different voltage
   val = map ( val, 0, 1023,0,255);        //value of potentionmeter
   if(pometerVal!=val){        //check if potentiometer changed
@@ -198,10 +199,8 @@ void loop() {
       j=0;
         subTitle=0;
        thisNote=0;
-       OledHW.clear();
-       Serial.println("I'm switching next");
-       pometerVal=val;
-       Serial.println("LED should just work!");
+       OledHW.clear();//clear led
+       pometerVal=val;  //update potentiometer
    } else if((pometerVal-val)<-20){
         if(i>rows-1){          //if current song is at position 1
           i=-1;       //play first song on the list
@@ -213,20 +212,21 @@ void loop() {
         subTitle=0;
         thisNote=0;
        OledHW.clear();
-       Serial.println("I'm switching back");
-       Serial.println("LED should just work!");
        pometerVal=val;
    }
    
  } 
  
-  if (buttonState == false) {
-      }
-  else if (buttonState == true) {
-    if (thisNote == 0) {
+  if (buttonState == false) {     //if pause, run empty function
+    if(analogRead(SOUND_SENSOR)>800){         //check if sound is greater than threshold
+      buttonState=true;
+    }
+   }
+  else if (buttonState == true) {     //if not pause
+    if (thisNote == 0) {              //if it's the first note then initialize subtitle 
         j=0;  
         subTitle = 0;
-    if (i > (rows-1) || start == 1) {
+    if (i > (rows-1) || start == 1) { //if it's the last song or the first time running 
       start = 0;
       i = -1;
     }
@@ -234,10 +234,10 @@ void loop() {
     wholenote = (60000 * 4) / tempo[i];
     divider = 0, noteDuration = 0;
     OledHW.clearDisplay();
-    char* str = (char*)pgm_read_word_near(&(lyric[i][j]));
+    char* str = (char*)pgm_read_word_near(&(lyric[i][j]));    //read lyric
     int z = 0;
     int line=1;
-    for (int b = z+14; b>0&&z < strlen(str); b--) {
+    for (int b = z+14; b>0&&z < strlen(str); b--) {     //divide subtitle if too long
         String str1 = str; 
       if (str[b] == ' '&&(b+z)<=strlen(str)) {
         OledHW.print(str1.substring(z,b)); 
@@ -267,7 +267,7 @@ void loop() {
   if(pgm_read_word_near(&(melody[i][thisNote])) == 0) {
     thisNote = 0;
   }else {
-    divider = pgm_read_word_near(&(melody[i][thisNote + 1]));
+    divider = pgm_read_word_near(&(melody[i][thisNote + 1]));   //set divider for the song
     if (divider > 0) {
       noteDuration = (wholenote) / divider;
     } else if (divider < 0) {
@@ -280,15 +280,15 @@ void loop() {
       char* str = (char*)pgm_read_word_near(&(lyric[i][j]));
       int z = 0;
       int line=1;
-      for (int b = z+14; b>0&&z < strlen(str); b--) {
+      for (int b = z+14; b>0&&z < strlen(str); b--) {           //loop to see if the subtitle is too long to display
           String str1 = str; 
-        if (str[b] == ' '&&(b+z)<=strlen(str)) {
+        if (str[b] == ' '&&(b+z)<=strlen(str)) {    //if too long, divide it on word based. (every line will have entire word written)
           OledHW.print(str1.substring(z,b)); 
-          OledHW.setCursor(0, line);
+          OledHW.setCursor(0, line);              //set next line cursor
           z=b+1;
           b=z+14;
           line++;
-        } else if(b>strlen(str)){
+        } else if(b>strlen(str)){             
           OledHW.print(str1.substring(z,strlen(str))); 
           z=strlen(str);
         }
@@ -305,15 +305,15 @@ void loop() {
 
     // stop the waveform generation before the next note.
     noTone(BUZZER);
-    thisNote++;
-    subTitle += noteDuration;
+    thisNote++;                 //next note
+    subTitle += noteDuration;  //add the duration of subtitle
   } 
   }
 }
 
 void interruptFunction(){
-  if((millis()-last_call)>50){    //set debounce
+  if((millis()-last_call)>50){    //set debounce to prevent user rapidly press the button.
     buttonState = !buttonState;
   }
-  last_call=millis();
+  last_call=millis();             //reset last call time;
 }
