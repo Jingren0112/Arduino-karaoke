@@ -99,8 +99,8 @@
 
 #include "Arduino_SensorKit.h"
 U8X8_SSD1306_128X64_NONAME_HW_I2C OledHW( U8X8_PIN_NONE);
-int tempo[2] = {120, 100};
-const int melody[2][100] PROGMEM = {
+int tempo[3] = {120, 100, 120};                   //speed of the song
+const int melody[3][140] PROGMEM = {
   {
     // Silent Night, Original Version
     // Score available at https://musescore.com/marcsabatella/scores/3123436
@@ -143,6 +143,12 @@ const int melody[2][100] PROGMEM = {
     NOTE_E4, -4, NOTE_D4, -4, NOTE_AS4, 4, NOTE_AS4, 8,
     NOTE_A4, -4, NOTE_F4, -4, NOTE_G4, -4,
     NOTE_F4, -2,
+  },
+  { // Dumb Ways To Die
+    NOTE_E4, 4, NOTE_G4, 8, NOTE_A4, 8, NOTE_C4, 2,
+    NOTE_E4, 8, NOTE_D4, 8, NOTE_C4, 8, NOTE_C4, 8, NOTE_A3, 8, NOTE_C4, 4, NOTE_D4, 8, NOTE_G3, 4, NOTE_G3, 8,
+    NOTE_E4, 4, NOTE_G4, 4, NOTE_A4, 8, NOTE_C5, 8, NOTE_C5, 8, NOTE_A4, 8, NOTE_A4, 8, NOTE_G4, 8, NOTE_G4, 8, NOTE_E4, 8, NOTE_E4, 8,
+    NOTE_E4, 8, NOTE_D4, -8, NOTE_C4, 8, NOTE_C4, -8, NOTE_A3, 8, NOTE_C4, 4, NOTE_D4, 8, NOTE_C4, 4,
   }
 };
 
@@ -151,7 +157,8 @@ const char* const lyric[][100] PROGMEM = {
     "all is calm", "all is bright", "round yon virgin", "mother and child",
     "holy infant, so", "tender and mild,", "sleep in heavenly", "peace", "sleep in heavenly", "peace."
   }, {"happy birthday to",
-      "you, happy birth","day to you","happy birthday to","the name, happy birth", "day to you"
+    "you, happy birth", "day to you", "happy birthday to", "the name, happy birth", "day to you"
+  }, {"dump way to die", "dump way to die", "dump way to die", "dump way to die", "dump way to die", "dump way to die", "dump way to die"
   }
 };
 int rows = sizeof(melody) / sizeof(melody[0]);
@@ -164,100 +171,108 @@ int sum = 0; //count the synchronization
 int subTitle = 0; //count the number of notes for subtitle
 int start = 1; //flag for if this is the first time running
 int reset = 0;
-int adjusted=0; //if potentiometer is turned
+int adjusted = 0; //if potentiometer is turned
 int pometerVal; //the previous value of PM
 unsigned int last_call; //handle button press time.
-boolean buttonState = true; 
+boolean buttonState = true;
 
 void setup() {
   //Tris here added pin13 for the lightbub
   pinMode (LED, OUTPUT);
   pinMode (BUTTON, INPUT);
   pinMode (BUTTON_ALT, INPUT);      //set the interrupt pin to input which can be controlled by button
-  attachInterrupt(digitalPinToInterrupt(BUTTON_ALT),interruptFunction,RISING);//trigger interrupt to run the function: interruptFunction with rising the button.
-  pometerVal=map (analogRead(POTENTIOMETER), 0, 1023, 0, 255); //read the previous value
+  attachInterrupt(digitalPinToInterrupt(BUTTON_ALT), interruptFunction, RISING); //trigger interrupt to run the function: interruptFunction with rising the button.
+  pometerVal = map (analogRead(POTENTIOMETER), 0, 1023, 0, 255); //read the previous value
   OledHW.begin();
   OledHW.setFlipMode(true);
   OledHW.setFont(u8x8_font_chroma48medium8_r);
   OledHW.setCursor(0, 0);    // Set the Coordinates
-  last_call=millis();         //set the time between each interrupt
+  last_call = millis();       //set the time between each interrupt
   Serial.begin(9600);
 }
 
 void loop() {
   //Tris : Set a val to read the recent value of PM
-  int val = analogRead(POTENTIOMETER);        //read current 
- //map up, get different voltage
-  val = map ( val, 0, 1023,0,255);        //value of potentionmeter
-  if(pometerVal!=val){        //check if potentiometer changed
-    if ((pometerVal-val)>20){
-      if(i==0){          //if current song is at position 0
-        i=rows-1;       //play last song on the list
-      }else{            
-        i--;  
+  int val = analogRead(POTENTIOMETER);        //read current
+  //map up, get different voltage
+  val = map ( val, 0, 1023, 0, 255);      //value of potentionmeter
+  
+  if (pometerVal != val) {    //check if potentiometer changed
+    Serial.print("Difference is:");
+    Serial.println(pometerVal-val);
+    if ((pometerVal - val) > 20) {
+      if (i >= rows - 1) {      //if current song is at position 1
+        i = 0;   //play first song on the list
+      } else {
+        i++;
       }
-      j=0;
-        subTitle=-1;
-       thisNote=0;
-       OledHW.clear();//clear led
-       pometerVal=val;  //update potentiometer
-   } else if((pometerVal-val)<-20){
-        if(i>rows-1){          //if current song is at position 1
-          i=0;       //play first song on the list
-          
-        }else{            
-          i++;  
-        }
-        j=0;
-        subTitle=0;
-        thisNote=0;
-       OledHW.clear();
-       pometerVal=val;
-   }
-   adjusted=1;
- } 
- 
+      j = 0;
+      subTitle = -1;
+      thisNote = 0;
+      OledHW.clear();//clear led
+      pometerVal = val; //update potentiometer
+      adjusted = 1;
+    } else if ((pometerVal - val) < -20) {
+      if (i==0) {    //if current song is at position 0
+        i = rows-1;     //play last song on the list
+
+      } else {
+        i--;
+      }
+      j = 0;
+      subTitle = 0;
+      thisNote = 0;
+      OledHW.clear();
+      pometerVal = val;
+      adjusted = 1;
+    } else{
+      pometerVal=val;
+    }
+  }
+
   if (buttonState == false) {     //if pause, run empty function
-    digitalWrite(BUTTON_ALT,LOW);
-    int temp=analogRead(SOUND_SENSOR);
-    if(temp>1023){         //check if sound is greater than threshold
-      buttonState=true;
-      digitalWrite(BUTTON_ALT,HIGH);
+    digitalWrite(BUTTON_ALT, LOW);
+    int temp = analogRead(SOUND_SENSOR);
+    if (temp > 1023) {     //check if sound is greater than threshold
+      buttonState = true;
+      digitalWrite(BUTTON_ALT, HIGH);
       Serial.println(temp);
     }
-   }
+  }
   else if (buttonState == true) {     //if not pause
-    if(pgm_read_word_near(&(melody[i][thisNote])) == 0) {
+    if (pgm_read_word_near(&(melody[i][thisNote])) == 0) {
       thisNote = 0;
     }
     if (thisNote == 0) {              //if it's the first note then initialize subtitle
-      if(adjusted==1){
-        adjusted=0; 
-      }else{
-         i++; 
+      Serial.print("value of i is");
+      Serial.println(i);
+      if (adjusted == 1) {
+        adjusted = 0;
+      } else if (i >= (rows - 1) || start == 1) { //if it's the last song or the first time running
+        start = 0;
+        i = 0;
+      }else {
+        i++;
       }
-    if (i > (rows-1) || start == 1) { //if it's the last song or the first time running 
-      start = 0;
-      i = 0;
+      j = 0;
+      subTitle = -1;
+      wholenote = (60000 * 4) / tempo[i];
+      divider = 0, noteDuration = 0;
+      OledHW.clear();
+      digitalWrite(LED, HIGH);
+      delay(500);
+      digitalWrite(LED, LOW);
+      delay(500);
+      digitalWrite(LED, HIGH);
+      delay(500);
+      digitalWrite(LED, LOW);
+      delay(500);
+      digitalWrite(LED, HIGH);
+      delay(500);
+      digitalWrite(LED, LOW);
+      delay(500);
     }
-    j=0;  
-    subTitle = -1;
-    wholenote = (60000 * 4) / tempo[i];
-    divider = 0, noteDuration = 0;
-    OledHW.clear();
-    digitalWrite(LED, HIGH);
-    delay(500);
-    digitalWrite(LED, LOW);
-    delay(500);
-    digitalWrite(LED, HIGH);
-    delay(500);
-    digitalWrite(LED, LOW);
-    delay(500);
-    digitalWrite(LED, HIGH);
-    delay(500);
-    digitalWrite(LED, LOW);
-  }
- 
+
     divider = pgm_read_word_near(&(melody[i][thisNote + 1]));   //set divider for the song
     if (divider > 0) {
       noteDuration = (wholenote) / divider;
@@ -265,23 +280,23 @@ void loop() {
       noteDuration = (wholenote) / abs(divider);
       noteDuration *= 1.5;
     }
-    if (subTitle >= wholenote *4/3 ||subTitle==-1) {
+    if (subTitle >= wholenote * 4 / 3 || subTitle == -1) {
       subTitle = 0;
       OledHW.clear();
       char* str = (char*)pgm_read_word_near(&(lyric[i][j]));
       int z = 0;
-      int line=1;
-      for (int b = z+14; b>0&&z < strlen(str); b--) {           //loop to see if the subtitle is too long to display
-          String str1 = str; 
-        if (str[b] == ' '&&(b+z)<=strlen(str)) {    //if too long, divide it on word based. (every line will have entire word written)
-          OledHW.print(str1.substring(z,b)); 
+      int line = 1;
+      for (int b = z + 14; b > 0 && z < strlen(str); b--) {     //loop to see if the subtitle is too long to display
+        String str1 = str;
+        if (str[b] == ' ' && (b + z) <= strlen(str)) { //if too long, divide it on word based. (every line will have entire word written)
+          OledHW.print(str1.substring(z, b));
           OledHW.setCursor(0, line);              //set next line cursor
-          z=b+1;
-          b=z+14;
+          z = b + 1;
+          b = z + 14;
           line++;
-        } else if(b>strlen(str)){             
-          OledHW.print(str1.substring(z,strlen(str))); 
-          z=strlen(str);
+        } else if (b > strlen(str)) {
+          OledHW.print(str1.substring(z, strlen(str)));
+          z = strlen(str);
         }
       }
       j++;
@@ -298,13 +313,13 @@ void loop() {
     noTone(BUZZER);
     thisNote++;                 //next note
     subTitle += noteDuration;  //add the duration of subtitle
-  } 
-  
+  }
+
 }
 
-void interruptFunction(){
+void interruptFunction() {
   //if((millis()-last_call)>50){    //set debounce to prevent user rapidly press the button.
-    buttonState = !buttonState;
- // }
+  buttonState = !buttonState;
+  // }
   //last_call=millis();             //reset last call time;
 }
