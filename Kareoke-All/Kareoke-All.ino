@@ -198,8 +198,6 @@ void loop() {
   val = map ( val, 0, 1023, 0, 255);      //value of potentionmeter
   
   if (pometerVal != val) {    //check if potentiometer changed
-    Serial.print("Difference is:");
-    Serial.println(pometerVal-val);
     if ((pometerVal - val) > 20) {
       if (i >= rows - 1) {      //if current song is at position 1
         i = 0;   //play first song on the list
@@ -231,12 +229,21 @@ void loop() {
   }
 
   if (buttonState == false) {     //if pause, run empty function
-    digitalWrite(BUTTON_ALT, LOW);
-    int temp = analogRead(SOUND_SENSOR);
-    if (temp > 1023) {     //check if sound is greater than threshold
+    Serial.println(analogRead(SOUND_SENSOR));
+    if(analogRead(SOUND_SENSOR)>700){
       buttonState = true;
-      digitalWrite(BUTTON_ALT, HIGH);
-      Serial.println(temp);
+      digitalWrite(LED, HIGH);
+      delay(500);
+      digitalWrite(LED, LOW);
+      delay(500);
+      digitalWrite(LED, HIGH);
+      delay(500);
+      digitalWrite(LED, LOW);
+      delay(500);
+      digitalWrite(LED, HIGH);
+      delay(500);
+      digitalWrite(LED, LOW);
+      delay(500);
     }
   }
   else if (buttonState == true) {     //if not pause
@@ -244,8 +251,6 @@ void loop() {
       thisNote = 0;
     }
     if (thisNote == 0) {              //if it's the first note then initialize subtitle
-      Serial.print("value of i is");
-      Serial.println(i);
       if (adjusted == 1) {
         adjusted = 0;
       } else if (i >= (rows - 1) || start == 1) { //if it's the last song or the first time running
