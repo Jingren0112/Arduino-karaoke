@@ -158,7 +158,7 @@ const char* const lyric[][100] PROGMEM = {
     "holy infant, so", "tender and mild,", "sleep in heavenly", "peace", "sleep in heavenly", "peace."
   }, {"happy birthday to",
     "you, happy birth", "day to you", "happy birthday to", "the name, happy birth", "day to you"
-  }, {"dumb ways to die", "so many dumb ways to", "die, dumb ways to d-i","-i-e so many","dumb ways to die"}
+  }, {"dumb ways to die", "so many dumb ways to", "die, dumb ways to d-i","-i-e so many dumb","ways to die"}
 };
 int rows = sizeof(melody) / sizeof(melody[0]);
 int cols = sizeof(melody[0]) / sizeof(int);
