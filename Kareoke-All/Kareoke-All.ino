@@ -99,7 +99,7 @@
 
 #include "Arduino_SensorKit.h"
 U8X8_SSD1306_128X64_NONAME_HW_I2C OledHW( U8X8_PIN_NONE);
-int tempo[3] = {120, 100, 120};                   //speed of the song
+int tempo[3] = {120, 100, 100};                   //speed of the song
 const int melody[3][140] PROGMEM = {
   {
     // Silent Night, Original Version
@@ -145,10 +145,10 @@ const int melody[3][140] PROGMEM = {
     NOTE_F4, -2,
   },
   { // Dumb Ways To Die
-    NOTE_E4, 4, NOTE_G4, 8, NOTE_A4, 8, NOTE_C4, 2,
-    NOTE_E4, 8, NOTE_D4, 8, NOTE_C4, 8, NOTE_C4, 8, NOTE_A3, 8, NOTE_C4, 4, NOTE_D4, 8, NOTE_G3, 4, NOTE_G3, 8,
-    NOTE_E4, 4, NOTE_G4, 4, NOTE_A4, 8, NOTE_C5, 8, NOTE_C5, 8, NOTE_A4, 8, NOTE_A4, 8, NOTE_G4, 8, NOTE_G4, 8, NOTE_E4, 8, NOTE_E4, 8,
-    NOTE_E4, 8, NOTE_D4, -8, NOTE_C4, 8, NOTE_C4, -8, NOTE_A3, 8, NOTE_C4, 4, NOTE_D4, 8, NOTE_C4, 4,
+    NOTE_E4, -4, NOTE_G4, 4, NOTE_A4, 4, NOTE_C4, 2,
+     NOTE_E4, -8, NOTE_D4, -4, NOTE_C4, -8, NOTE_C4, -4, NOTE_D4, -8, NOTE_G3, -4,
+     NOTE_E4, -4, NOTE_G4, -4, NOTE_A4, -8, NOTE_C5, -4, NOTE_A4, -8, NOTE_G4, -8, NOTE_E4,-8,
+     NOTE_E4, -8, NOTE_D4, -4, NOTE_C4, -8, NOTE_C4, -4, NOTE_D4, -8, NOTE_C4, -4,
   }
 };
 
@@ -158,8 +158,7 @@ const char* const lyric[][100] PROGMEM = {
     "holy infant, so", "tender and mild,", "sleep in heavenly", "peace", "sleep in heavenly", "peace."
   }, {"happy birthday to",
     "you, happy birth", "day to you", "happy birthday to", "the name, happy birth", "day to you"
-  }, {"dump way to die", "dump way to die", "dump way to die", "dump way to die", "dump way to die", "dump way to die", "dump way to die"
-  }
+  }, {"dumb ways to die", "so many dumb ways to", "die, dumb ways to d-i","-i-e so many","dumb ways to die"}
 };
 int rows = sizeof(melody) / sizeof(melody[0]);
 int cols = sizeof(melody[0]) / sizeof(int);
